@@ -18,6 +18,9 @@ double a_tolerance = 50;*/
 int ms = (int) (1000 / update_rate);
 double dt = 1.0 / update_rate; 
 
+#define SERVO_1 9
+#define SERVO_2 10
+
 /**
     From a previous project https://github.com/andrew-bork/autonomous/blob/main/include/backend/mpu6050.h 
     Register map: https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Register-Map1.pdf#%5B%7B%22num%22%3A24%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C62%2C613%2C0%5D
@@ -506,11 +509,11 @@ void setup(void) {
 
     // Switch servos if needed.
     if(switchServos) {
-        rollServo.attach(9);
-        pitchServo.attach(10);
+        rollServo.attach(SERVO_1);
+        pitchServo.attach(SERVO_2);
     }else {
-        rollServo.attach(10);
-        pitchServo.attach(9);
+        rollServo.attach(SERVO_2);
+        pitchServo.attach(SERVO_1);
     }
 
     // Center the servos.

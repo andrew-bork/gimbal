@@ -5,14 +5,16 @@
  * Parameters
  * 
  */
-double tau = 0.01; 
+
+bool switchServos = false;
+double tau = 0.5; 
 
 double update_rate = 100;
 
 double g = 9.8;
 double g_squared = g*g;
 
-double a_tolerance = 50;*/
+double a_tolerance = 50;
 
 
 int ms = (int) (1000 / update_rate);
@@ -245,16 +247,16 @@ class mpu6050 {
         void mpu6050::set_gyro_range(gyro_range range){
             switch(range){
                 case deg_250:
-                    gyro_scale = 250 * RAD_T_DEG;
+                    gyro_scale = 250 * DEG_T_RAD;
                     break;
                 case deg_500:
-                    gyro_scale = 500 * RAD_T_DEG;
+                    gyro_scale = 500 * DEG_T_RAD;
                     break;
                 case deg_1000:
-                    gyro_scale = 1000 * RAD_T_DEG;
+                    gyro_scale = 1000 * DEG_T_RAD;
                     break;
                 case deg_2000:
-                    gyro_scale = 2000 * RAD_T_DEG;
+                    gyro_scale = 2000 * DEG_T_RAD;
                     break;
             }
             write(REG_GYRO_CFG, read(REG_GYRO_CFG) & (~0b00011000) | (range << 3));
@@ -502,7 +504,7 @@ void setup(void) {
 
     mpu.wake_up(); // WAKE UP WAKE UP
     mpu.set_accel_range(mpu6050::g_2); // Set accelerometer range
-    mpu.set_gyro_range(mpu6050::deg_250); // Set gyro range
+    mpu.set_gyro_range(mpu6050::deg_1000); // Set gyro range
     mpu.set_clock(mpu6050::y_gyro); // Set clock to y gyro
     mpu.set_dlpf(mpu6050::hz_5); // Set lowpass filter
 
@@ -539,7 +541,7 @@ void loop() {
     
     math::vector orientation_euler = math::quarternion::toEuler(orientation);
     
-    if(abs(a_mag - grav_squared) < a_tolerance) {
+    if(abs(a_mag - g_squared) < a_tolerance) {
         // If the acceleration seems in range, use it to calculate orientation.
         orientation_euler.x = accelerometer_roll * tau + (1 - tau) * orientation_euler.x;
         orientation_euler.y = accelerometer_pitch * tau + (1 - tau) * orientation_euler.y;
@@ -556,14 +558,26 @@ void loop() {
 
     // log
     Serial.print("roll:");
-    Serial.print(orientation_euler.x);
+    Serial.print(orientation_euler.x * RAD_T_DEG);
 
     Serial.print(", pitch:");
-    Serial.print(orientation_euler.y);
+    Serial.print(orientation_euler.y * RAD_T_DEG);
+
+    Serial.print(", a_roll:");
+    Serial.print(accelerometer_roll * RAD_T_DEG);
+
+    Serial.print(", a_pitch:");
+    Serial.print(accelerometer_pitch * RAD_T_DEG);
+
+    Serial.print(", g_vroll:");
+    Serial.print(data[3] * RAD_T_DEG);
+
+    Serial.print(", g_vpitch:");
+    Serial.print(data[4] * RAD_T_DEG);
 
     Serial.println();
 
-    delay(10);
+    delay(ms);
 }
 
 

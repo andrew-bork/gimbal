@@ -25,7 +25,7 @@ double update_rate = 24;
  * @brief The allowed difference between measured acceleration and gravity in order to calculate absolute orientation.
  * 
  */
-double a_tolerance = 20;
+double a_tolerance = 2;
 double a_tolerance_squared = a_tolerance_squared * a_tolerance_squared;
 
 double g = 9.8;
@@ -49,11 +49,18 @@ void setup() {
     Wire.begin(); // Start I2C connection.
 
     mpu.wake_up(); // WAKE UP WAKE UP
-    mpu.set_accel_range(mpu6050::g_8); // Set accelerometer range
-    mpu.set_gyro_range(mpu6050::deg_2000); // Set gyro range
+    mpu.set_accel_range(mpu6050::g_2); // Set accelerometer range
+    mpu.set_gyro_range(mpu6050::deg_1000); // Set gyro range
     mpu.set_clock(mpu6050::y_gyro); // Set clock to y gyro
-    mpu.set_dlpf(mpu6050::hz_5); // Set lowpass filter
+    mpu.set_dlpf(mpu6050::hz_21); // Set lowpass filter
 
+    delay(1000);
+
+    // USE THE CALIBRATE PROGRAM TO GET THE OFFSETS
+    mpu.set_offsets(-0.05, -0.19, -1.74, 0.11, -0.05, 0.01);
+    // Serial.println("Calibrating mpu6050");
+    // mpu.calibrate(100, 24); // 100 / 24 about 4 secs to calibrate. Make sure to keep still.
+    // Serial.println("Calibration finished!");
 
     roll_servo.attach(SERVO_ROLL);
     pitch_servo.attach(SERVO_PITCH);
@@ -71,7 +78,7 @@ math::vector calculate_roll_pitch(const math::vector& acceleration) {
     return euler;
 }
 
-math::quarternion orientation;
+math::quarternion orientation = math::quarternion::fromEulerZYX(math::vector(0, 0, 0));
 
 void loop() {
     math::vector acceleration;
@@ -79,17 +86,17 @@ void loop() {
 
     mpu.get_data(acceleration, angular_velocity);
 
-    double a_mag = math::square_length(acceleration);
+    double a_mag = math::length(acceleration);
 
 
     // Integrate angular velocity reading.
-    math::quarternion gyro_quarternion = math::quarternion::fromEulerZYX(angular_velocity * dt);
+    math::quarternion gyro_quarternion = math::quarternion::fromEulerZYX(angular_velocity*dt);
     orientation = gyro_quarternion * orientation;
     
     math::vector orientation_euler = math::quarternion::toEuler(orientation);
     math::vector accelerometer_orientation;
 
-    if(abs(a_mag - g_squared) < a_tolerance_squared) {
+    if(abs(a_mag - g) < a_tolerance) {
         // If the acceleration seems in range, use it to calculate orientation.
         accelerometer_orientation = calculate_roll_pitch(acceleration);
 
@@ -111,30 +118,47 @@ void loop() {
     
     
     { // log
-        Serial.print("roll:");
-        Serial.print(orientation_euler.x * RAD_TO_DEG);
+        // Serial.print("roll:");
+        // Serial.print(orientation_euler.x * RAD_TO_DEG);
 
-        Serial.print(", pitch:");
-        Serial.print(orientation_euler.y * RAD_TO_DEG);
+        // Serial.print(", pitch:");
+        // Serial.print(orientation_euler.y * RAD_TO_DEG);
 
-        Serial.print(", a_roll:");
-        Serial.print(accelerometer_orientation.x * RAD_TO_DEG);
+        // Serial.print(", a_roll:");
+        // Serial.print(accelerometer_orientation.x * RAD_TO_DEG);
 
-        Serial.print(", a_pitch:");
-        Serial.print(accelerometer_orientation.y * RAD_TO_DEG);
+        // Serial.print(", a_pitch:");
+        // Serial.print(accelerometer_orientation.y * RAD_TO_DEG);
 
-        Serial.print(", g_vroll:");
-        Serial.print(angular_velocity.x * RAD_TO_DEG);
+        // Serial.print(", g_vroll:");
+        // Serial.print(angular_velocity.x * RAD_TO_DEG);
 
-        Serial.print(", g_vpitch:");
-        Serial.print(angular_velocity.y * RAD_TO_DEG);
-        Serial.print(", accel:");
-        Serial.print(sqrt(a_mag));
+        // Serial.print(", g_vpitch:");
+        // Serial.print(angular_velocity.y * RAD_TO_DEG);
+
+        // Serial.print(", accel:");
+        // Serial.print(a_mag);
         // Serial.print(", Diffrenece_g:");
-        // Serial.print(abs(a_mag - g_squared));
+        // Serial.print(abs(a_mag - g));
+        // Serial.print(", tolerance:");
+        // Serial.print(a_tolerance);
 
-        Serial.print(", A_tolerance:");
-        Serial.print(a_tolerance);
+        // Serial.print("A:");
+        // Serial.print(a_mag);
+
+        // Serial.print(", Ax:");
+        // Serial.print(acceleration.x);
+        // Serial.print(",Ay:");
+        // Serial.print(acceleration.y);
+        // Serial.print(",Az:");
+        // Serial.print(acceleration.z);
+        
+        // Serial.print(",Vr:");
+        // Serial.print(angular_velocity.x);
+        // Serial.print(",Vp:");
+        // Serial.print(angular_velocity.y);
+        // Serial.print(",Vy:");
+        // Serial.print(angular_velocity.z);
 
         Serial.println();
     }

@@ -26,3 +26,6 @@
   ```cpp
   mpu.set_offsets(-0.05, -0.19, -1.74, 0.11, -0.05, 0.01);
   ```
+
+## docs
+    Contains the datasheet for the MPU6050

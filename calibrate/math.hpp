@@ -2,8 +2,6 @@
 #define MATH_INCLUDE_GUARD
 
 
-#define float_eql(a,b) (((a-b) < 0.00001) && ((b - a) < 0.00001))
-
 #define DEG_TO_RAD 0.017453292519943
 #define RAD_TO_DEG 57.29577951308232
 
@@ -74,7 +72,7 @@ namespace math {
                 bool unit; // Unit quarternion flag.
 
                 /**
-                 * @brief Construct a unit quarternion
+                 * @brief Construct a zero quarternion
                  * 
                  */
                 quarternion();
@@ -186,13 +184,6 @@ namespace math {
                  * @return vector 
                  */
                 static vector rotateVector(math::quarternion& q, math::vector& in);
-
-                /**
-                 * @brief Returns a zero quarternion.
-                 * 
-                 * @return quarternion 
-                 */
-                static quarternion zero();
         };
         
         /**
@@ -230,9 +221,8 @@ namespace math {
  */
 
 math::quarternion::quarternion(){
-    x = y = z = 0;
-    w = 0;
-    unit = true;
+    w = x = y = z = 0;
+    unit = false;
 }
 
 math::quarternion::quarternion(double x, double y, double z){
@@ -247,7 +237,6 @@ math::quarternion::quarternion(double w, double x, double y, double z){
     this->x = x;
     this->y = y;
     this->z = z;
-    // unit = length(&this);
     unit = false;
 }
 
@@ -257,10 +246,6 @@ math::quarternion::quarternion(double w, double x, double y, double z, bool unit
     this->y = y;
     this->z = z;
     this->unit = unit;
-}
-
-math::quarternion math::quarternion::zero() {
-    return math::quarternion(0, 0, 0, 0, false);
 }
 
 

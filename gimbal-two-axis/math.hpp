@@ -1,3 +1,5 @@
+#ifndef MATH_INCLUDE_GUARD
+#define MATH_INCLUDE_GUARD
 
 /**
     Pulled from an older project https://github.com/andrew-bork/autonomous/blob/main/include/math/math.h 
@@ -363,3 +365,6 @@ math::vector math::quarternion::rotateVector(math::quarternion& q, math::vector&
     vector out = math::vector(temp.x, temp.y, temp.z);
     return out;
 }
+
+
+#endif

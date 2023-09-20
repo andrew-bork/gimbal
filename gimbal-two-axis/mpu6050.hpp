@@ -1,4 +1,8 @@
+#ifndef MPU6050_INCLUDE_GUARD
+#define MPU6050_INCLUDE_GUARD
+
 #include <Wire.h>
+#include "./math.hpp"
 
 /**
     From a previous project https://github.com/andrew-bork/autonomous/blob/main/include/backend/mpu6050.h 
@@ -262,6 +266,8 @@ class mpu6050 {
             data[4] = (((double) combine(buf[10], buf[11])) / 0x7fff) * gyro_scale;
             data[5] = (((double) combine(buf[12], buf[13])) / 0x7fff) * gyro_scale;
         }
+
+        void get_data()
         
         /**
          * @brief Debug function. Gets the value of a register. An alias for read
@@ -273,3 +279,5 @@ class mpu6050 {
             return read(reg);
         }
 };
+
+#endif

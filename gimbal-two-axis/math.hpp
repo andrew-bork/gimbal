@@ -1,6 +1,10 @@
 #ifndef MATH_INCLUDE_GUARD
 #define MATH_INCLUDE_GUARD
 
+
+#define DEG_TO_RAD 0.017453292519943
+#define RAD_TO_DEG 57.29577951308232
+
 /**
     Pulled from an older project https://github.com/andrew-bork/autonomous/blob/main/include/math/math.h 
     A set of complicated math objects.
@@ -196,6 +200,14 @@ namespace math {
          * @return double 
          */
         double length(const math::vector& v);
+
+        /**
+         * @brief Length squared of a vector.
+         * 
+         * @param v 
+         * @return double 
+         */
+        double square_length(const math::vector& v);
 }
 
 
@@ -271,6 +283,9 @@ double math::length(const math::quarternion& q){
 
 double math::length(const math::vector& v){
     return sqrt(v.x*v.x+v.y*v.y+v.z*v.z);
+}
+double math::square_length(const math::vector& v){
+    return v.x*v.x+v.y*v.y+v.z*v.z;
 }
 
 math::quarternion math::quarternion::inverse(const math::quarternion& q){

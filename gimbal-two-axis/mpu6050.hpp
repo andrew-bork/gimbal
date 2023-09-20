@@ -4,16 +4,16 @@
 #include <Wire.h>
 #include "./math.hpp"
 
+
+#define DEG_TO_RAD 0.017453292519943
+#define RAD_TO_DEG 57.29577951308232
+
 /**
     From a previous project https://github.com/andrew-bork/autonomous/blob/main/include/backend/mpu6050.h 
-    Register map: https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Register-Map1.pdf#%5B%7B%22num%22%3A24%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C62%2C613%2C0%5D
+    Register map: https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Register-Map1.pdf
 
     Register stuff:
 */
-#define RAD_T_DEG 57.29577951308 //Radians to degrees (180/PI)
-#define DEG_T_RAD 0.0174533
-#define DEG_TO_RAD 0.017453292519943
-#define RAD_TO_DEG 57.29577951308232
 
 #define MPU6050_DEFAULT_ADDR 0x68
 
@@ -51,7 +51,9 @@
 #define Y_GYRO_SHIFT 72
 #define Z_GYRO_SHIFT 2337
 
-// Combine two unsigned bytes into 1 16 bit signed integer with two's complement
+#define SIGNED_16_BIT_MAX 0x7fff
+
+// Combine two unsigned bytes into a single 16 bit signed integer with two's complement
 #define combine(msb, lsb) ((((int16_t) msb) << 8) | lsb)
 
 /**
@@ -60,7 +62,6 @@
  */
 class mpu6050 {
     private: 
-        
         /**
          * @brief Write a byte to a register
          * 
@@ -205,16 +206,16 @@ class mpu6050 {
         void set_accel_range(accel_range range) {
             switch(range){
                 case g_16:
-                    accel_scale = 16 * 9.81;
+                    accel_scale = 16 * 9.81 / SIGNED_16_BIT_MAX;
                     break;
                 case g_8: 
-                    accel_scale = 8 * 9.81;
+                    accel_scale = 8 * 9.81 / SIGNED_16_BIT_MAX;
                     break;
                 case g_4: 
-                    accel_scale = 4 * 9.81;
+                    accel_scale = 4 * 9.81 / SIGNED_16_BIT_MAX;
                     break;
                 case g_2: 
-                    accel_scale = 2 * 9.81;
+                    accel_scale = 2 * 9.81 / SIGNED_16_BIT_MAX;
                     break;
             }
             write(REG_ACCL_CFG, read(REG_ACCL_CFG) & (~0b00011000) | (range << 3));
@@ -228,16 +229,16 @@ class mpu6050 {
         void mpu6050::set_gyro_range(gyro_range range){
             switch(range){
                 case deg_250:
-                    gyro_scale = 250 * DEG_T_RAD;
+                    gyro_scale = 250 * DEG_TO_RAD / SIGNED_16_BIT_MAX;
                     break;
                 case deg_500:
-                    gyro_scale = 500 * DEG_T_RAD;
+                    gyro_scale = 500 * DEG_TO_RAD / SIGNED_16_BIT_MAX;
                     break;
                 case deg_1000:
-                    gyro_scale = 1000 * DEG_T_RAD;
+                    gyro_scale = 1000 * DEG_TO_RAD / SIGNED_16_BIT_MAX;
                     break;
                 case deg_2000:
-                    gyro_scale = 2000 * DEG_T_RAD;
+                    gyro_scale = 2000 * DEG_TO_RAD / SIGNED_16_BIT_MAX;
                     break;
             }
             write(REG_GYRO_CFG, read(REG_GYRO_CFG) & (~0b00011000) | (range << 3));
@@ -245,29 +246,49 @@ class mpu6050 {
 
         /**
          * @brief Get the sensor data. Make sure the data array is at least 6 doubles
-         * 0 - 2 Ax, Ay, Az (Acclerometer Data) (m/s)
-         * 3 - 5 Gr, Gp, Gy (Gyroscope Data) (radians)
+         * 0 - 2 Ax, Ay, Az (Acclerometer Data) (m/s^2)
+         * 3 - 5 Gr, Gp, Gy (Gyroscope Data) (radians/s)
          * @param data An array of 6 doubles
          */
         void get_data(double * data) {
             uint8_t buf[14]; // 0-5 Accelerometer 
-                                                // 6-7 Temp 
-                                                // 8-13 Gyro 
+                            // 6-7 Temp 
+                            // 8-13 Gyro 
             
             read_burst(OUT_XACCL_H, buf, 14); // All registers are in order. Just burst read them all.
 
-
             // Combine, convert to signed, and scale.
-            data[0] = (((double) combine(buf[0], buf[1])) / 0x7fff) * accel_scale;
-            data[1] = (((double) combine(buf[2], buf[3])) / 0x7fff) * accel_scale;
-            data[2] = (((double) combine(buf[4], buf[5])) / 0x7fff) * accel_scale;
+            data[0] = (((double) combine(buf[0], buf[1]))) * accel_scale;
+            data[1] = (((double) combine(buf[2], buf[3]))) * accel_scale;
+            data[2] = (((double) combine(buf[4], buf[5]))) * accel_scale;
 
-            data[3] = (((double) combine(buf[8], buf[9])) / 0x7fff) * gyro_scale;
-            data[4] = (((double) combine(buf[10], buf[11])) / 0x7fff) * gyro_scale;
-            data[5] = (((double) combine(buf[12], buf[13])) / 0x7fff) * gyro_scale;
+            data[3] = (((double) combine(buf[8], buf[9]))) * gyro_scale;
+            data[4] = (((double) combine(buf[10], buf[11]))) * gyro_scale;
+            data[5] = (((double) combine(buf[12], buf[13]))) * gyro_scale;
         }
 
-        void get_data()
+        /**
+         * @brief Get the sensor data. Data is nicely loaded into two vectors.
+         * 
+         * @param acceleration (m/s^2)
+         * @param gyroscope (radians/s)
+         */
+        void get_data(math::vector& acceleration, math::vector& gyroscope) {
+            uint8_t buf[14]; // 0-5 Accelerometer 
+                            // 6-7 Temp 
+                            // 8-13 Gyro 
+            
+            read_burst(OUT_XACCL_H, buf, 14); // All registers are in order. Just burst read them all.
+
+            // Combine, convert to signed, and scale.
+            acceleration.x = (((double) combine(buf[0], buf[1]))) * accel_scale;
+            acceleration.y = (((double) combine(buf[2], buf[3]))) * accel_scale;
+            acceleration.z = (((double) combine(buf[4], buf[5]))) * accel_scale;
+
+            gyroscope.x = (((double) combine(buf[8], buf[9]))) * gyro_scale;
+            gyroscope.y = (((double) combine(buf[10], buf[11]))) * gyro_scale;
+            gyroscope.z = (((double) combine(buf[12], buf[13]))) * gyro_scale;
+        }
         
         /**
          * @brief Debug function. Gets the value of a register. An alias for read
